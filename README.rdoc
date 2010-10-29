@@ -35,24 +35,24 @@ NOTE: This is a Work In Progress, and definitively not ready for production. Use
 		[c simulate];
 	}
 
-For every CCPhysicsDynamicShape in the space, you need to provide an update method. Otherwise they would just "fall" into because of gravity.
+For every CCPhysicsDynamicShape in the space, you need to provide an update method. Otherwise they would just fall because of (fake) gravity.
 
 If your Hero object (in LevelSVG parlance) is a CCPhysicsDynamicShape - and it should be dynamic, otherwise it would be static! - then you might need to add the movement logic in the update method. Check the FAQ for a simple example.
 
 == CURRENT AVAILABLE SHAPES
 
-	typedef enum {
-		ShapeSquare     = 1,
-		ShapeHalfSquare, // square of 16x16
-		ShapeRect_32x14, // rectangle of 32x14
-		ShapeRect_32x20, // rectangle of 32x20
-		// The following shapes are not implemented (yet)
-		ShapeCircle,     // circle of 16px of radius
-		ShapeTR_L45,     // right 45deg triangle
-		ShapeTR_R45,     // left 45deg triangle
-	} CollisionShapeType;
+    typedef enum {
+    	ShapeSquare     = 1,
+    	ShapeHalfSquare, // square of 16x16
+    	ShapeRect_32x14, // rectangle of 32x14
+    	ShapeRect_32x20, // rectangle of 32x20
+    	// The following shapes are not implemented (yet)
+    	ShapeCircle,     // circle of 16px of radius
+    	ShapeTR_L45,     // right 45deg triangle
+    	ShapeTR_R45,     // left 45deg triangle
+    } CollisionShapeType;
 
-These shapes are defined to that way because the basic "tile" is 32x32 (the grid for the spatial hash). Please notice that you can still add any kind of rectangle shape you want, given that they are AABB (axis aligned bounded box, that is, the "lines" of the box are aligned with the x and y axis).
+These shapes are defined that way because the basic "tile" is 32x32 (the grid for the spatial hash). Please notice that you can still add any kind of rectangle shape you want, given that they are AABB (axis aligned bounded box, that is, the "lines" of the box are aligned with the x and y axis).
 
 Please notice however, that due to constrictions of the engine, the ideal rectangle shape would not take more than two tiles wide. This is to keep things simple and fast.
 
@@ -125,6 +125,6 @@ Of course, everything will depend on your actual code and what you really want t
 
 == THANKS
 
-Many, many thanks to the guys from whom I "inspired" (read: ripped off) most of the ideas.
+Many, many thanks to the guys from whom I "got inspired" (read: ripped off) to create the engine.
 
 Also, many thanks to riq from Cocos2D-iPhone for inspiring us in doing great games!
