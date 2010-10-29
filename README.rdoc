@@ -8,34 +8,32 @@ NOTE: This is a Work In Progress, and definitively not ready for production. Use
 
 == Really quick intro
 
-```obj-c
-- (id)init {
+	- (id)init {
 
-	...
-	// will add a container with the director's window as bounds
-	// you can also call [CCPhysicsContainer containerWithBounds:bounds]
-	CCPhysicsContainer *c = [CCPhysicsContainer node];
-	for (NSUInteger i=0; i < 15; i++) {
-		NSInteger shape = random() % 3 + 1;
-		NSInteger cellY = random() % 10;
-		CCPhysicsShape *t = [CCPhysicsShape shapeWithCollisionType:shape];
-		// the object will be centered in the cell, but it could be placed anywhere
-		t.position = ccp(i*32 + 16, cellY * 32 + 16);
-		[c addChild:t];
+		...
+		// will add a container with the director's window as bounds
+		// you can also call [CCPhysicsContainer containerWithBounds:bounds]
+		CCPhysicsContainer *c = [CCPhysicsContainer node];
+		for (NSUInteger i=0; i < 15; i++) {
+			NSInteger shape = random() % 3 + 1;
+			NSInteger cellY = random() % 10;
+			CCPhysicsShape *t = [CCPhysicsShape shapeWithCollisionType:shape];
+			// the object will be centered in the cell, but it could be placed anywhere
+			t.position = ccp(i*32 + 16, cellY * 32 + 16);
+			[c addChild:t];
+		}
+		[self addChild:t z:0 tag:1];
+
+		...
+
+		// schedule update function
+		[self schedule:@selector(tick:)];
 	}
-	[self addChild:t z:0 tag:1];
 
-	...
-
-	// schedule update function
-	[self schedule:@selector(tick:)];
-}
-
-- (void)tick:(ccTime)delta {
-	CCPhysicsContainer *c = (CCPhysicsContainer *)[self getChildByTag:1];
-	[c simulate];
-}
-```
+	- (void)tick:(ccTime)delta {
+		CCPhysicsContainer *c = (CCPhysicsContainer *)[self getChildByTag:1];
+		[c simulate];
+	}
 
 For every CCPhysicsDynamicShape in the space (dynamic shapes do not collide with each other. This might change in the future), you need to provide an update method. Otherwise they would just "fall" into because of gravity.
 
@@ -43,7 +41,6 @@ If your Hero object (in LevelSVG parlance) is a CCPhysicsDynamicShape - and it s
 
 == CURRENT AVAILABLE SHAPES
 
-```c
 	typedef enum {
 		ShapeSquare     = 1,
 		ShapeHalfSquare, // square of 16x16
@@ -54,7 +51,6 @@ If your Hero object (in LevelSVG parlance) is a CCPhysicsDynamicShape - and it s
 		ShapeTR_L45,     // right 45deg triangle
 		ShapeTR_R45,     // left 45deg triangle
 	} CollisionShapeType;
-```
 
 These shapes are defined to that way because the basic "tile" is 32x32 (the grid for the spatial hash). Please notice that you can still add any kind of rectangle shape you want, given that they are AABB (axis aligned bounded box, that is, the "lines" of the box are aligned with the x and y axis).
 
@@ -69,21 +65,19 @@ Another thing to keep in mind: if you add a sprite, make sure that the sprite ha
 Q:: Hey! where do I define the mass of my objects?
 A:: This is not a *real* physics engine. It's intended to be fake, so objects do not weight. You can simulate it by changing the integrate method of a dynamic object. By default it will be something like this:
 
-```obj-c
-- (void)integrate {
-	CGPoint p = position_;
-	CGPoint o = oldPos_;
+	- (void)integrate {
+		CGPoint p = position_;
+		CGPoint o = oldPos_;
 
-	NSAssert(collisionType_, @"No collision type!!");
-	oldPos_ = position_;
-	// integrate
-	p.x += (DRAG * p.x) - (DRAG * o.x) + gravity_.x;
-	p.y += (DRAG * p.y) - (DRAG * o.y) + gravity_.y;
+		NSAssert(collisionType_, @"No collision type!!");
+		oldPos_ = position_;
+		// integrate
+		p.x += (DRAG * p.x) - (DRAG * o.x) + gravity_.x;
+		p.y += (DRAG * p.y) - (DRAG * o.y) + gravity_.y;
 
-	// we need to call CCNode's set position
-	[self setPosition:p];
-}
-```
+		// we need to call CCNode's set position
+		[self setPosition:p];
+	}
 
 That is, a simple verlet integration.
 
@@ -94,34 +88,32 @@ A:: Again, *not* a real physics engine. You can do that yourself overriding the 
 Q:: How can I move my CCPhysicsDynamicShape?
 A:: I would suggest you to create a new subclass of CCPhysicsDynamicShape, and do something like this:
 
-```obj-c
-// first, just mark the movement (move left as long as the flag is set)
-// for instance, set it on touchBegan, clear it on touchEnded
-- (void)moveLeft {
-	movement_ |= SpermMoveLeft;
-}
-
-// this is called once on every simulation
-- (void)update {
-	// move
-	CGPoint p = position_;
-	CGPoint o = oldPos_;
-	CGPoint v = ccpSub(p, o);
-	CGPoint f = CGPointZero;
-	if (movement_ & SpermMoveLeft) {
-		f.x = -OBJSPEED;
-	} else if (movement_ & SpermMoveRight) {
-		f.x = OBJSPEED;
+	// first, just mark the movement (move left as long as the flag is set)
+	// for instance, set it on touchBegan, clear it on touchEnded
+	- (void)moveLeft {
+		movement_ |= SpermMoveLeft;
 	}
 
-	// this will add "f" to the current speed, with a max speed of MAXSPEED
-	if (f.x != 0 || f.y != 0) {
-		CGPoint np = ccp(MIN(MAXSPEED, MAX(-MAXSPEED, v.x + f.x)), MIN(MAXJSPEED, MAX(-MAXJSPEED, v.y + f.y)));
-		p = ccpAdd(o, np);
-		position_ = p;
+	// this is called once on every simulation
+	- (void)update {
+		// move
+		CGPoint p = position_;
+		CGPoint o = oldPos_;
+		CGPoint v = ccpSub(p, o);
+		CGPoint f = CGPointZero;
+		if (movement_ & SpermMoveLeft) {
+			f.x = -OBJSPEED;
+		} else if (movement_ & SpermMoveRight) {
+			f.x = OBJSPEED;
+		}
+
+		// this will add "f" to the current speed, with a max speed of MAXSPEED
+		if (f.x != 0 || f.y != 0) {
+			CGPoint np = ccp(MIN(MAXSPEED, MAX(-MAXSPEED, v.x + f.x)), MIN(MAXJSPEED, MAX(-MAXJSPEED, v.y + f.y)));
+			p = ccpAdd(o, np);
+			position_ = p;
+		}
 	}
-}
-```
 
 Of course, everything will depend on your actual code and what you really want to do.
 
