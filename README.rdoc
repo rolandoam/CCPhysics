@@ -35,7 +35,7 @@ NOTE: This is a Work In Progress, and definitively not ready for production. Use
 		[c simulate];
 	}
 
-For every CCPhysicsDynamicShape in the space (dynamic shapes do not collide with each other. This might change in the future), you need to provide an update method. Otherwise they would just "fall" into because of gravity.
+For every CCPhysicsDynamicShape in the space, you need to provide an update method. Otherwise they would just "fall" into because of gravity.
 
 If your Hero object (in LevelSVG parlance) is a CCPhysicsDynamicShape - and it should be dynamic, otherwise it would be static! - then you might need to add the movement logic in the update method. Check the FAQ for a simple example.
 

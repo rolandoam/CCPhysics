@@ -106,13 +106,12 @@
 	NSAssert([child isKindOfClass:[CCPhysicsShape class]], @"CCPhysicsContainer can only hold Tiles");
 	[super addChild:child z:z tag:tag];
 	
-	// should dynamic objects be added to the grid?
+	// add the object to the grid
+	[self updateTileGridForTile:(CCPhysicsShape *)child];
 	if (dynamic) {
 		ccArrayEnsureExtraCapacity(dynamicObjects_, 1);
 		// just a weak ref, since children_ array holds them tight :-P
 		ccArrayAppendObject(dynamicObjects_, child);
-	} else {
-		[self updateTileGridForTile:(CCPhysicsShape *)child];
 	}
 	return child;
 }
@@ -188,6 +187,7 @@
 			[obj collideWith:0 object:nil projection:ccp(0,-d.y)];
 		}
 	}
+	
 	// check on the neighbour cells
 	CHECK_COLLISION_IN_CELL(colx - 1, coly + 1);
 	CHECK_COLLISION_IN_CELL(colx    , coly + 1);
@@ -218,42 +218,45 @@
 	// iterate over all objects in the cell
 	CCPhysicsShape *t;	
 	CCARRAYDATA_FOREACH(item->items, t) {
-		// tile halfwidths
-		tw = ShapeHalfWidths[t.collisionType];
-		
-		// tile position in points
-		tp = t.position;
-		
-		// delta between object and tile
-		dp = ccpSub(op, tp);
-		
-		// penetration = (tw + ow) - abs(dp)
-		penetration = ccpSub(ccpAdd(tw, obj.hw), ccp(fabs(dp.x), fabs(dp.y)));
-		if (0 < penetration.x) {
-			if (0 < penetration.y) {
-				// object colliding with tile
-				if (penetration.x < penetration.y) {
-					// project in x
-					if (dp.x < 0) {
-						// project to the left
-						p->x = -penetration.x;
+		// skip if t == obj
+		if (obj != t) {
+			// tile halfwidths
+			tw = ShapeHalfWidths[t.collisionType];
+			
+			// tile position in points
+			tp = t.position;
+			
+			// delta between object and tile
+			dp = ccpSub(op, tp);
+			
+			// penetration = (tw + ow) - abs(dp)
+			penetration = ccpSub(ccpAdd(tw, obj.hw), ccp(fabs(dp.x), fabs(dp.y)));
+			if (0 < penetration.x) {
+				if (0 < penetration.y) {
+					// object colliding with tile
+					if (penetration.x < penetration.y) {
+						// project in x
+						if (dp.x < 0) {
+							// project to the left
+							p->x = -penetration.x;
+						} else {
+							// project to the right
+							p->x = penetration.x;
+						}
+						p->y = 0;
 					} else {
-						// project to the right
-						p->x = penetration.x;
+						// project in y
+						if (dp.y < 0) {
+							// project up
+							p->y = -penetration.y;
+						} else {
+							// project down
+							p->y = penetration.y;
+						}
+						p->x = 0;
 					}
-					p->y = 0;
-				} else {
-					// project in y
-					if (dp.y < 0) {
-						// project up
-						p->y = -penetration.y;
-					} else {
-						// project down
-						p->y = penetration.y;
-					}
-					p->x = 0;
+					return YES;
 				}
-				return YES;
 			}
 		}
 	}
