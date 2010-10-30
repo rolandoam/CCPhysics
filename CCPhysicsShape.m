@@ -111,7 +111,7 @@ CGPoint ShapeHalfWidths[] = {
 	CGPoint p = position_;
 	CGPoint o = oldPos_;
 	
-	CGFloat dp = (v.x * d.x + v.y * d.y);
+	CGFloat dp = ccpDot(v, d);
 	CGPoint nv = ccpMult(d, dp); // normal velocity
 	CGPoint tv = ccpSub(v, nv);  // tan velocity
 	
@@ -172,8 +172,8 @@ CGPoint ShapeHalfWidths[] = {
 	NSAssert(collisionType_, @"No collision type!!");
 	oldPos_ = position_;
 	// integrate
-	p.x += (DRAG * p.x) - (DRAG * o.x) + gravity_.x;
-	p.y += (DRAG * p.y) - (DRAG * o.y) + gravity_.y;
+	// p = p + (p - o)*DRAG + gravity
+	p = ccpAdd(p, ccpAdd(ccpMult(ccpSub(p, o), DRAG), gravity_));
 	
 	// we need to call CCNode's set position
 	[self setPosition:p];
