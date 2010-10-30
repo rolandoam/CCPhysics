@@ -35,21 +35,29 @@
 #pragma mark Collision Resolver Functions
 // there should be one function for each CollisionShapeType
 
-int ProjAABB_ShapeFull(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *tile) {
+int ProjAABB_ShapeFull(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *shape) {
 	CGFloat l = sqrtf(p.x * p.x + p.y * p.y);
-	[obj collisionWithWorldTile:tile projection:p normal:ccpMult(p, 1/l)];
+	[obj collisionWithObject:shape projection:p normal:ccpMult(p, 1/l)];
+	// FIXME
+	// this is not working ok - the idea of this is to make other dynamic
+	// objects be able to push another object
+	/*
+	if ([shape isKindOfClass:[CCPhysicsDynamicShape class]]) {
+		[shape collisionWithObject:obj projection:p normal:ccpMult(p, -1/l)];
+	}
+	*/
 	return kCollideAxis;
 }
 
-int ProjAABB_ShapeCircle(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *tile) {
+int ProjAABB_ShapeCircle(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *shape) {
 	return kCollideNone;
 }
 
-int ProjAABB_ShapeTR_L45(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *tile) {
+int ProjAABB_ShapeTR_L45(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *shape) {
 	return kCollideNone;
 }
 
-int ProjAABB_ShapeTR_R45(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *tile) {
+int ProjAABB_ShapeTR_R45(CCPhysicsShape *obj, CGPoint p, CCPhysicsShape *shape) {
 	return kCollideNone;
 }
 
@@ -81,7 +89,7 @@ CGPoint ShapeHalfWidths[] = {
 - (id)initWithCollisionType:(CollisionShapeType)collisionType {
 	if ((self = [super init])) {
 		collisionType_ = collisionType;
-		alertMovesToParent_ = YES;
+		reportMovesToParent_ = YES;
 		
 		// default halfwidths
 		hw_ = ShapeHalfWidths[collisionType];
@@ -89,11 +97,15 @@ CGPoint ShapeHalfWidths[] = {
 	return self;
 }
 
+- (CGFloat)speed {
+	return ccpDistance(position_, oldPos_);
+}
+
 - (void)setPosition:(CGPoint)newPosition {
 	[super setPosition:newPosition];
 	// let our parent know about our new position, so he can update the grid
-	if (alertMovesToParent_)
-		[(CCPhysicsContainer *)self.parent updateTileGridForTile:self];
+	if (reportMovesToParent_)
+		[(CCPhysicsContainer *)self.parent addObjectToGrid:self];
 }
 
 - (void)collideWith:(CollisionShapeType)type object:(CCPhysicsShape *)obj projection:(CGPoint)p {
@@ -101,10 +113,10 @@ CGPoint ShapeHalfWidths[] = {
 	// this is the solver for AABB vs Tile
 	
 	(*AABBSolverList[obj.collisionType])(self, p, obj);
-	[self collidedWithTile:obj];
+	[self collidedWithObject:obj];
 }
 
-- (void)collisionWithWorldTile:(CCPhysicsShape *)tile projection:(CGPoint)proj normal:(CGPoint)d {
+- (void)collisionWithObject:(CCPhysicsShape *)obj projection:(CGPoint)proj normal:(CGPoint)d {
 	// here we should calculate the new velocity
 	// having a projection and a surface normal
 	CGPoint v = ccpSub(position_, oldPos_);
@@ -129,7 +141,7 @@ CGPoint ShapeHalfWidths[] = {
 	oldPos_ = o;	
 }
 
-- (void)collidedWithTile:(CCPhysicsShape *)tile {
+- (void)collidedWithObject:(CCPhysicsShape *)obj {
 }
 
 - (void)draw {
@@ -149,17 +161,22 @@ CGPoint ShapeHalfWidths[] = {
 
 
 @implementation CCPhysicsDynamicShape
-+ (CCPhysicsDynamicShape *)shapeWithPosition:(CGPoint)pos {
-	return [[[CCPhysicsDynamicShape alloc] initWithPosition:pos] autorelease];
++ (CCPhysicsDynamicShape *)shapeWithPosition:(CGPoint)pos collisionType:(CollisionShapeType)collisionType {
+	return [[[CCPhysicsDynamicShape alloc] initWithPosition:pos collisionType:collisionType] autorelease];
 }
 
-- (id)initWithPosition:(CGPoint)pos {
-	if ((self = [super init])) {
+- (id)initWithPosition:(CGPoint)pos collisionType:(CollisionShapeType)collisionType {
+	if ((self = [super initWithCollisionType:collisionType])) {
 		// we need to set the pos and old pos
 		oldPos_ = pos;
 		self.position = pos;
 		// subclasses need to set a specific shape!
-		collisionType_ = 0;
+		collisionType_ = collisionType;
+		// usually, dynamic shapes do not report moves to parent
+//		reportMovesToParent_ = YES;
+		// each object has different gravity
+		// this allows us to have "gravity centers"
+		gravity_ = ccp(0.0f, -0.2);
 	}
 	return self;
 }
@@ -181,5 +198,19 @@ CGPoint ShapeHalfWidths[] = {
 
 // override on subclasses
 - (void)update {
+}
+
+// draw with different color
+- (void)draw {
+	glColor4ub(0xff, 0, 0xff, 0xff);
+	glLineWidth(2.0f);
+	
+	CGPoint points[4];
+	points[0] = ccp(-hw_.x,  hw_.y);
+	points[1] = ccp( hw_.x,  hw_.y);
+	points[2] = ccp( hw_.x, -hw_.y);
+	points[3] = ccp(-hw_.x, -hw_.y);
+	
+	ccDrawPoly(points, 4, YES);
 }
 @end

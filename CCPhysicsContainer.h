@@ -55,9 +55,12 @@ typedef struct _hashCellItem {
 - (id)addChild:(CCNode *)child z:(int)z dynamic:(BOOL)dynamic;
 - (id)addChild:(CCNode *)child z:(int)z tag:(int)tag dynamic:(BOOL)dynamic;
 // updates collision grid
-- (void)updateTileGridForTile:(CCPhysicsShape *)tile;
+- (void)addObjectToGrid:(CCPhysicsShape *)obj;
 // checks for collision in the near grid
-- (void)checkCollisionsFor:(CCPhysicsShape *)tile;
+- (void)checkCollisionsFor:(CCPhysicsShape *)obj;
+// start and stop simulation
+- (void)start;
+- (void)end;
 // do a little dance... make a little physics
 - (void)simulate;
 @end

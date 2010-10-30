@@ -31,11 +31,10 @@
 #define MAX_ROWS  10
 
 @interface CCPhysicsContainer (Private)
-- (void)addObjectToGrid:(CCPhysicsShape *)obj;
-- (int)checkCollisionsInCell:(tHashCellItem *)item forObject:(CCPhysicsShape *)obj outProjection:(CGPoint *)p outTile:(CCPhysicsShape **)tile;
+- (int)checkCollisionsInCell:(tHashCellItem *)item forObject:(CCPhysicsShape *)obj outProjection:(CGPoint *)p outObject:(CCPhysicsShape **)outObj;
 @end
 
-#define CHECK_COLLISION_IN_CELL(x,y) do {                          \
+#define CHECK_COLLISION_IN_CELL(x,y,o) do {                        \
 	if ((x) >= 0 && (x) < maxCols_ && (y) >=0 && (y) < maxRows_) { \
 		CGPoint p;                                                 \
 		CCPhysicsShape *shape = nil;                               \
@@ -43,10 +42,10 @@
 		tHashCellItem *item = nil;                                 \
 		HASH_FIND_INT(tileGrid_, &cell, item);                     \
 		if (item && [self checkCollisionsInCell:item               \
-									  forObject:obj                \
+									  forObject:o                  \
 								  outProjection:&p                 \
-										outTile:&shape]) {         \
-			[obj collideWith:shape.collisionType                   \
+										outObject:&shape]) {       \
+			[o collideWith:shape.collisionType                     \
 					  object:shape                                 \
 				  projection:p];                                   \
 		}                                                          \
@@ -103,14 +102,14 @@
 }
 
 - (id)addChild:(CCNode*)child z:(int)z tag:(int)tag dynamic:(BOOL)dynamic {
-	NSAssert([child isKindOfClass:[CCPhysicsShape class]], @"CCPhysicsContainer can only hold Tiles");
+	NSAssert([child isKindOfClass:[CCPhysicsShape class]], @"CCPhysicsContainer can only hold CCPhysicShapes");
 	[super addChild:child z:z tag:tag];
 	
 	// add the object to the grid
-	[self updateTileGridForTile:(CCPhysicsShape *)child];
+	[self addObjectToGrid:(CCPhysicsShape *)child];
 	if (dynamic) {
 		ccArrayEnsureExtraCapacity(dynamicObjects_, 1);
-		// just a weak ref, since children_ array holds them tight :-P
+		// weak ref, since children_ array holds it tight :-P
 		ccArrayAppendObject(dynamicObjects_, child);
 	}
 	return child;
@@ -146,11 +145,6 @@
 	cx = (tp.x + obj.hw.x) / GRID_SIZE;
 	cy = (tp.y - obj.hw.y) / GRID_SIZE;
 	SECURE_APPEND_IN_CELL(cx, cy, obj)
-}
-
-- (void)updateTileGridForTile:(CCPhysicsShape *)tile {
-	NSAssert(tile.parent == self, @"This tile does not belong to me!");
-	[self addObjectToGrid:tile];
 }
 
 - (void)checkCollisionsFor:(CCPhysicsShape *)obj {
@@ -189,15 +183,23 @@
 	}
 	
 	// check on the neighbour cells
-	CHECK_COLLISION_IN_CELL(colx - 1, coly + 1);
-	CHECK_COLLISION_IN_CELL(colx    , coly + 1);
-	CHECK_COLLISION_IN_CELL(colx + 1, coly + 1);
-	CHECK_COLLISION_IN_CELL(colx - 1, coly    );
-	CHECK_COLLISION_IN_CELL(colx    , coly    );
-	CHECK_COLLISION_IN_CELL(colx + 1, coly    );
-	CHECK_COLLISION_IN_CELL(colx - 1, coly - 1);
-	CHECK_COLLISION_IN_CELL(colx    , coly - 1);
-	CHECK_COLLISION_IN_CELL(colx + 1, coly - 1);
+	CHECK_COLLISION_IN_CELL(colx - 1, coly + 1, obj);
+	CHECK_COLLISION_IN_CELL(colx    , coly + 1, obj);
+	CHECK_COLLISION_IN_CELL(colx + 1, coly + 1, obj);
+	CHECK_COLLISION_IN_CELL(colx - 1, coly    , obj);
+	CHECK_COLLISION_IN_CELL(colx    , coly    , obj);
+	CHECK_COLLISION_IN_CELL(colx + 1, coly    , obj);
+	CHECK_COLLISION_IN_CELL(colx - 1, coly - 1, obj);
+	CHECK_COLLISION_IN_CELL(colx    , coly - 1, obj);
+	CHECK_COLLISION_IN_CELL(colx + 1, coly - 1, obj);
+}
+
+- (void)start {
+	[self schedule:@selector(simulate)];
+}
+
+- (void)end {
+	[self unschedule:@selector(simulate)];
 }
 
 - (void)simulate {
@@ -208,10 +210,12 @@
 		[obj update];
 		[obj integrate];
 		[self checkCollisionsFor:obj];
-	}	
+	}
 }
 
-- (int)checkCollisionsInCell:(tHashCellItem *)item forObject:(CCPhysicsShape *)obj outProjection:(CGPoint *)p outTile:(CCPhysicsShape **)tile {
+// this is the internal method that projects an object after it collides
+// if we want to add pre/post collision callbacks, this is the place
+- (int)checkCollisionsInCell:(tHashCellItem *)item forObject:(CCPhysicsShape *)obj outProjection:(CGPoint *)p outObject:(CCPhysicsShape **)outObj {
 	CGPoint op = obj.position;
 	CGPoint dp, penetration, tp, tw;
 	
@@ -233,7 +237,8 @@
 			penetration = ccpSub(ccpAdd(tw, obj.hw), ccp(fabs(dp.x), fabs(dp.y)));
 			if (0 < penetration.x) {
 				if (0 < penetration.y) {
-					// object colliding with tile
+					// object colliding with another object
+					*outObj = t;
 					if (penetration.x < penetration.y) {
 						// project in x
 						if (dp.x < 0) {

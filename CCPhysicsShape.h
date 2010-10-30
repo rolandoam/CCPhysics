@@ -55,7 +55,7 @@ enum {
 	// whether or not to inform our parent (CCNode) when we change our position
 	// this should be false for the dynamic object, since they inform on the
 	// integrate function
-	BOOL alertMovesToParent_;
+	BOOL reportMovesToParent_;
 	// we use this to calculate velocity and verlet integration
 	CGPoint oldPos_;
 	// half widths. These are taken from the static list. Should not be
@@ -63,11 +63,12 @@ enum {
 	CGPoint hw_;
 }
 
-@property (nonatomic,readonly) CollisionShapeType collisionType;
+@property (nonatomic,readwrite) CollisionShapeType collisionType;
 @property (nonatomic,readonly) CGPoint hw;
 
 + (CCPhysicsShape *)shapeWithCollisionType:(CollisionShapeType)collisionType;
 - (id)initWithCollisionType:(CollisionShapeType)collisionType;
+- (CGFloat)speed;
 
 /*
  * process collision
@@ -87,14 +88,14 @@ enum {
  * this is called after the projection and normal were calculated. This will change
  * velocity according to the physics (adding friction and bounce)
  */
-- (void)collisionWithWorldTile:(CCPhysicsShape *)tile projection:(CGPoint)proj normal:(CGPoint)d;
+- (void)collisionWithObject:(CCPhysicsShape *)obj projection:(CGPoint)proj normal:(CGPoint)d;
 
 /*
  * final collision callback
  * 
  * this is called after the solver and after the execution. In case you need to do something
  */
-- (void)collidedWithTile:(CCPhysicsShape *)tile;
+- (void)collidedWithObject:(CCPhysicsShape *)obj;
 @end
 
 
@@ -102,8 +103,8 @@ enum {
 	CGPoint gravity_;
 }
 
-+ (CCPhysicsDynamicShape *)shapeWithPosition:(CGPoint)pos;
-- (id)initWithPosition:(CGPoint)pos;
++ (CCPhysicsDynamicShape *)shapeWithPosition:(CGPoint)pos collisionType:(CollisionShapeType)collisionType;
+- (id)initWithPosition:(CGPoint)pos collisionType:(CollisionShapeType)collisionType;
 
 /*
  * verlet integration
