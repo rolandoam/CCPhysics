@@ -126,16 +126,7 @@ CGPoint ShapeHalfWidths[] = {
 	o = ccpAdd(o, ccpAdd(proj, b_plus_f));
 	
 	position_ = p;
-	oldPos_ = o;
-	
-	/*
-	 * FIXME
-	 * BUG: when colliding horizontally with a tile, it pushes the object
-	 * down... weird - need to check the solver
-	 */
-//	if (p.y < o.y) {
-//		CCLOG(@"old pos: %f,%f - new pos: %f,%f", oldPos_.x, oldPos_.y, p.x, p.y);
-//	}
+	oldPos_ = o;	
 }
 
 - (void)collidedWithTile:(CCPhysicsShape *)tile {
